@@ -1,0 +1,21 @@
+## pass-helper
+## Copyright © 2021 sysfive.com GmbH
+##
+## GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
+
+GPG_OPTS='--batch --no-tty'
+ID_FILE="./secrets/.gpg-id"
+GPG_HOME=$(if [ -z "${GNUPGHOME+X}" ]; then echo "$HOME/.gnupg"; else echo "$GNUPGHOME"; fi )
+
+check_gpg_ids () {
+    bad_lines=$(grep -Ev -e '^([[:xdigit:]]{16,40})$' "$ID_FILE") || true
+    if [[ -n "$bad_lines" ]]; then
+        echo "ERROR: These entries in secrets/.gpg-id are no hexadecimal (>= 16 digits) key IDs:"
+        echo "$bad_lines"
+        return 2
+    fi
+}
+
+get_user_id () {
+    gpg $GPG_OPTS --fingerprint "$1"|grep uid|head -n 1|awk '{$1=""; print $0}'
+}

@@ -1,0 +1,14 @@
+# Editor backup files
+*.sw?
+*~
+.\#*
+\#*\#
+
+# Generated files
+*.html
+*.pdf
+
+# Python
+*.pyc
+.mypy_cache/
+.venv/

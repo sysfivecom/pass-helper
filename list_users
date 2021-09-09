@@ -1,0 +1,18 @@
+#!/bin/bash
+
+## pass-helper
+## Copyright © 2021 sysfive.com GmbH
+##
+## GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
+
+set -eu
+set -o pipefail
+
+. ./pass-helper/common
+check_gpg_ids
+
+for id in $(cat "$ID_FILE")
+do
+    uid=$(get_user_id "$id")
+    echo "$id: $uid"
+done

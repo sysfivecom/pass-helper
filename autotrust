@@ -1,0 +1,54 @@
+#!/bin/sh
+
+## pass-helper
+## Copyright © 2021 sysfive.com GmbH
+##
+## GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
+
+set -eu
+
+. ./pass-helper/common
+
+GPG_CONF="$GPG_HOME/gpg.conf"
+
+# Ensure gpg version >= 2
+gpg_version=$(gpg --version|sed -En '1{s/^.* ([[:digit:]]).*/\1/ ;p;}')
+[ "$gpg_version" -lt 2 ] && echo "GnuPG needs to be at least version 2!" && exit 1
+gpg --help | grep -q tofu-policy || ( echo "This GnuPG doesn't support TOFU-policy; please upgrade" ; exit 1)
+
+# Check that we have at least one key with ultimate trust in this repo (hopefully ours)
+ultimate_pubs=$(for key in $(cat secrets/.gpg-id);do gpg --export-ownertrust 2>/dev/null | grep -e ':6:$' | (grep "$key" || exit 0);done|wc -l)
+[ "$ultimate_pubs" -lt 1 ] && {
+    echo "ERROR: We don't trust any of the keys in secrets/.gpg-id ultimately."
+    echo "So no encryption will be possible."
+    echo "Fix your own key to be ultimately trusted!"
+    exit 1
+}
+
+# Ensure "$GPG_CONF" exists and contains trust-model tofu
+[ -f "$GPG_CONF" ] || {
+    echo "Creating $GPG_CONF"
+    touch "$GPG_CONF"
+}
+if grep -qe '^trust-model' "$GPG_CONF"; then
+    grep -qe '^trust-model tofu$' "$GPG_CONF" || {
+        echo "WARN: Replacing GnuPG trust-model with tofu only"
+        #replace sed with perl
+	#sed 's/^trust-model/# trust-model/g' -i "$GPG_CONF"
+	perl -i -p -e "s/^trust-model/# trust-model/g" "$GPG_CONF"
+        echo "trust-model tofu" >> "$GPG_CONF"
+    }
+fi
+
+# Import all keys so we know them
+for key in Pubkeys/*.asc;do
+    gpg --import "$key"
+done
+
+# We need the key IDs for trusting them
+for key in $(cat "$ID_FILE");do
+    gpg --tofu-policy good "$key"
+done
+
+echo
+echo "All keys imported and trusted."

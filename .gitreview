@@ -1,0 +1,6 @@
+[gerrit]
+host=review.sysfive.com
+port=29418
+project=password-store/pass-helper
+defaultbranch=master
+defaultremote=origin
